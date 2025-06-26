@@ -19,6 +19,7 @@ export default function SignUp() {
 
   const handleSignUp = () => {
     console.log(name, email, password);
+    router.push('/(trader)/home')
  
   };
 
