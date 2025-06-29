@@ -1,22 +1,76 @@
-import { SafeAreaView ,TouchableOpacity,View} from "react-native"
+import { SafeAreaView ,TouchableOpacity,View,Alert} from "react-native"
 import { TextInput,Text,StyleSheet ,Image,Switch} from "react-native"
 import logo from '../assets/images/logo (2).png'
+import {login} from './services/UserService'
 import { useState } from "react"
-
-
+import {jwtDecode} from 'jwt-decode'; 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons'
 import { useRouter } from "expo-router"
-export default function login (){
+export default function loginScreen (){
     const [email,setEmail]= useState('');
     const [password,setPassword]=useState('')
     const [hidePassword,setHidePassword]=useState(true)
      const [rememberMe, setRememberMe] = useState(false);
-
-  const handleLogin = () => {
-    console.log(email, password, rememberMe);
-    router.push('/home')
-  };
-  const router=useRouter();
+     const router=useRouter();
+     const handleLogin = async () => {
+      try {
+        const res = await login(email, password);
+        const user = res.user;
+    
+        const token = user?.tokens?.accessToken;
+        if (!token) throw new Error('Token not found');
+    
+        await AsyncStorage.setItem('token', token);
+    
+        const decoded = jwtDecode(token);
+    
+        const userId = decoded._id;
+        if (!userId) throw new Error('User ID not found in token');
+    
+        // Store base user info
+        await AsyncStorage.setItem('userId', userId);
+    
+        if (decoded.userEmail || user.email) {
+          await AsyncStorage.setItem('userEmail', decoded.userEmail || user.email);
+        }
+    
+        if (decoded.userName) {
+          await AsyncStorage.setItem('userName', decoded.userName);
+        }
+    
+        // Save shop-related info if present
+        if (user.shopName) {
+          await AsyncStorage.setItem('shopName', user.shopName);
+        }
+        if (user.shopAddress) {
+          await AsyncStorage.setItem('shopAddress', user.shopAddress);
+        }
+        if (user.productCategory) {
+          await AsyncStorage.setItem('productCategory', user.productCategory);
+        }
+    
+        // Detect role using both fields and normalize casing
+        const rawRole = decoded.userRole || decoded.accountType || user.role || user.accountType;
+        const role = rawRole?.toString().toLowerCase();
+    
+        Alert.alert('Success', 'Welcome!');
+    
+        // Navigate based on role
+        if (role === 'user') {
+          router.push('/home'); // user dashboard
+        } else if (role === 'shopowner') {
+          router.push('/(trader)/home'); // shop owner dashboard
+        } else {
+          router.push('/home'); // fallback
+        }
+    
+      } catch (error) {
+        Alert.alert('Login Error', error.message || 'Login failed');
+      }
+    };
+    
+    
     return(
         <SafeAreaView style={styles.container}>
             <Image source={logo} style={styles.logo}/>

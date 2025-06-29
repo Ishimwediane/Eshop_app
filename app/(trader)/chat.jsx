@@ -1,24 +1,25 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
 
 export default function chat() {
   const router = useRouter();
   const { id } = useLocalSearchParams(); // this could be trader id
 
   const [messages, setMessages] = useState([
-    { id: '1', text: 'Hello! I’m interested in the Smart TV.', sender: 'me' },
-    { id: '2', text: 'Hi! Yes, it’s available.', sender: 'trader' },
+    { id: '1', text: 'Hello! I am interested in the Smart TV.', sender: 'me' },
+    { id: '2', text: 'Hi! Yes, it is available.', sender: 'trader' },
     { id: '3', text: 'Can I pay in 3 installments?', sender: 'me' },
   ]);
   const [input, setInput] = useState('');
@@ -50,12 +51,16 @@ export default function chat() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.container}
     >
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       {/* Top Bar */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? 36 : 50 }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Trader #{id}</Text>
+        <TouchableOpacity onPress={() => router.push('/shopOwnerProfile')} style={{ marginLeft: 'auto' }}>
+          <Ionicons name="person-circle" size={30} color="#333" />
+        </TouchableOpacity>
       </View>
 
       {/* Messages */}
@@ -63,7 +68,7 @@ export default function chat() {
         data={messages}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        contentContainerStyle={styles.chatArea}
+        contentContainerStyle={[styles.chatArea, { paddingBottom: 100 }]}
       />
 
       {/* Input Box */}

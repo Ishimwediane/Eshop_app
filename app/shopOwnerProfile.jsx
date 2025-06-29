@@ -5,22 +5,22 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import {
-  createUserProfile,
-  getUserProfileByUserId,
-  updateUserProfile,
-} from '../services/profileService';
+    createUserProfile,
+    getUserProfileByUserId,
+    updateUserProfile,
+} from './services/profileService';
 
 const GENDER_OPTIONS = [
   { label: 'Select Gender', value: '' },
@@ -270,10 +270,8 @@ export default function ProfileScreen() {
               </View>
             )}
             <View style={{ marginLeft: 16 }}>
+              <Text style={styles.profileName}>{profile?.fullName || 'No Name Set'}</Text>
               <Text style={styles.profileEmail}>{userEmail}</Text>
-              {!form.images && !pickedImage && (
-                <Text style={styles.noNameText}>No Name Set</Text>
-              )}
             </View>
           </View>
         </View>
@@ -339,13 +337,6 @@ export default function ProfileScreen() {
               contentContainerStyle={{ padding: 20, paddingBottom: 32 }}
               showsVerticalScrollIndicator={false}
             >
-              {/* Close icon at top right */}
-              <TouchableOpacity
-                style={styles.closeIcon}
-                onPress={() => { setIsEditing(false); setPickedImage(null); }}
-              >
-                <Ionicons name="close" size={28} color="#333" />
-              </TouchableOpacity>
               <Text style={styles.editModalTitle}>Edit Profile</Text>
               {/* Avatar with camera icon overlay */}
               <View style={{ alignItems: 'center', marginBottom: 20 }}>
@@ -367,7 +358,8 @@ export default function ProfileScreen() {
                   </TouchableOpacity>
                 </View>
               </View>
-              {/* Remove Full Name field */}
+              {/* ...form fields... */}
+              <View style={styles.formGroup}><Text style={styles.label}>Full Name</Text><TextInput style={styles.input} value={form.fullName} onChangeText={text => handleChange('fullName', text)} placeholder="Enter full name" /></View>
               <View style={styles.formGroup}><Text style={styles.label}>Gender</Text><View style={styles.pickerWrapper}><Picker selectedValue={form.gender} onValueChange={value => handleChange('gender', value)} style={styles.picker}>{GENDER_OPTIONS.map(option => (<Picker.Item key={option.value} label={option.label} value={option.value} />))}</Picker></View></View>
               <View style={styles.formGroup}><Text style={styles.label}>Age Range</Text><View style={styles.pickerWrapper}><Picker selectedValue={form.ageRange} onValueChange={value => handleChange('ageRange', value)} style={styles.picker}>{AGE_RANGE_OPTIONS.map(option => (<Picker.Item key={option.value} label={option.label} value={option.value} />))}</Picker></View></View>
               <View style={styles.formGroup}><Text style={styles.label}>Address</Text><TextInput style={styles.input} value={form.address} onChangeText={text => handleChange('address', text)} placeholder="Enter address" /></View>
@@ -375,6 +367,7 @@ export default function ProfileScreen() {
               <View style={styles.formGroup}><Text style={styles.label}>Salary</Text><TextInput style={styles.input} value={form.salary} onChangeText={text => handleChange('salary', text)} placeholder="Enter salary" keyboardType="numeric" /></View>
               <View style={styles.formGroup}><Text style={styles.label}>Telephone</Text><TextInput style={styles.input} value={form.telephone} onChangeText={text => handleChange('telephone', text)} placeholder="Enter telephone" keyboardType="phone-pad" /></View>
               <TouchableOpacity style={styles.button} onPress={handleSave}><Text style={styles.buttonText}>{profile ? 'Update Profile' : 'Create Profile'}</Text></TouchableOpacity>
+              <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => { setIsEditing(false); setPickedImage(null); }}><Text style={[styles.buttonText, { color: '#333' }]}>Cancel</Text></TouchableOpacity>
             </ScrollView>
           </View>
         )}
@@ -427,6 +420,11 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     backgroundColor: '#e0f7f5',
+  },
+  profileName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#222',
   },
   profileEmail: {
     fontSize: 14,
@@ -560,19 +558,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',
+    marginTop: 10,
   },
   buttonText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  cancelButton: {
+    backgroundColor: '#f1f1f1',
+    marginTop: 10,
+  },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  closeIcon: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    zIndex: 10,
-  },
-  noNameText: {
-    fontSize: 14,
-    color: '#aaa',
-    marginTop: 2,
-    fontStyle: 'italic',
-  },
 });

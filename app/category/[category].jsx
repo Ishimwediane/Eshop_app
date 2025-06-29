@@ -1,55 +1,75 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, Image, TouchableOpacity, SafeAreaView, Dimensions, ActivityIndicator
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  Image,
+  TouchableOpacity,
+  Dimensions,
+  SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { fetchInstallmentProducts } from '../services/productService'; // adjust path
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { fetchAllProducts } from '../services/productService';
 
 const screenWidth = Dimensions.get('window').width;
 
-export default function InstallmentOffersPage() {
+export default function CategoryScreen() {
   const router = useRouter();
-  const [offers, setOffers] = useState([]);
+  const { category } = useLocalSearchParams();
+
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const getInstallments = async () => {
+    const loadProducts = async () => {
       try {
-        const products = await fetchInstallmentProducts();
-        setOffers(products);
+        const all = await fetchAllProducts();
+
+        // Debug logging
+        console.log('Selected Category:', category);
+        all.forEach(p => console.log(`Found: [${p.productCategory}]`));
+
+        const filtered = all.filter(
+          (p) =>
+            p.productCategory &&
+            category &&
+            p.productCategory.trim().toLowerCase() === category.trim().toLowerCase()
+        );
+
+        setProducts(filtered);
       } catch (err) {
-        console.error('Failed to fetch installment products', err);
+        console.error('Failed to fetch category products:', err.message);
       } finally {
         setLoading(false);
       }
     };
 
-    getInstallments();
-  }, []);
+    loadProducts();
+  }, [category]);
 
   const renderItem = ({ item }) => (
     <TouchableOpacity
-      onPress={() => router.push(`/product/${item._id}`)}
+      onPress={() => router.push({ pathname: '/productDetails', params: { id: item._id } })}
       style={styles.cardWrapper}
     >
       <View style={styles.card}>
         <Image source={{ uri: item.images[0] }} style={styles.image} />
       </View>
       <Text style={styles.name}>{item.productName}</Text>
-      <Text style={styles.note}>Installments Available</Text>
       <Text style={styles.price}>{item.productPrice} RWF</Text>
     </TouchableOpacity>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Top Bar */}
+    <SafeAreaView style={styles.safeArea}>
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.title}>Installment Offers</Text>
+        <Text style={styles.title}>{category || 'Category'}</Text>
         <View style={styles.iconGroup}>
           <TouchableOpacity onPress={() => router.push('/cart')}>
             <Ionicons name="cart-outline" size={22} color="#000" />
@@ -61,27 +81,27 @@ export default function InstallmentOffersPage() {
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#7FE8C9" style={{ marginTop: 50 }} />
+        <ActivityIndicator size="large" color="#7FE8C9" style={{ marginTop: 40 }} />
+      ) : products.length === 0 ? (
+        <Text style={{ textAlign: 'center', marginTop: 40, color: '#999' }}>
+          No products found in {category}.
+        </Text>
       ) : (
         <FlatList
-          data={offers}
+          data={products}
           keyExtractor={(item) => item._id}
           numColumns={2}
-          columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: 16 }}
-          contentContainerStyle={{ padding: 16 }}
+          contentContainerStyle={styles.grid}
           renderItem={renderItem}
-          ListEmptyComponent={
-            <Text style={{ textAlign: 'center', marginTop: 20 }}>No installment products available.</Text>
-          }
+          columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: 16 }}
         />
       )}
     </SafeAreaView>
   );
 }
 
-
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: '#fff',
     top: 50,
@@ -97,10 +117,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: 'bold',
+    textTransform: 'capitalize',
   },
   iconGroup: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  grid: {
+    padding: 16,
   },
   cardWrapper: {
     width: screenWidth * 0.45,
@@ -108,8 +132,8 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#fff',
     elevation: 2,
+    backgroundColor: '#fff',
   },
   image: {
     width: '100%',
@@ -119,10 +143,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     marginTop: 6,
-  },
-  note: {
-    fontSize: 13,
-    color: 'green',
   },
   price: {
     fontSize: 14,

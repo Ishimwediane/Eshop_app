@@ -1,17 +1,22 @@
-import React, { useState, useMemo } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  TouchableOpacity,
-  SafeAreaView,
-  StatusBar,
-  Alert,
-  Modal,
-  ScrollView,
-} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Alert,
+  FlatList,
+  Image,
+  Modal,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { getUserProfileByUserId } from '../services/profileService';
 
 const initialOrders = [
   {
@@ -52,10 +57,29 @@ const initialOrders = [
 const statuses = ['All', 'Pending', 'Shipped', 'Delivered', 'Cancelled'];
 
 export default function TraderOrdersScreen() {
+  const router = useRouter();
   const [orders, setOrders] = useState(initialOrders);
   const [filterStatus, setFilterStatus] = useState('All');
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [profileImageUri, setProfileImageUri] = useState(null);
+
+  useEffect(() => {
+    const fetchProfileImage = async () => {
+      try {
+        const userId = await AsyncStorage.getItem('userId');
+        if (userId) {
+          const profile = await getUserProfileByUserId(userId);
+          if (profile && profile.images && profile.images.length > 0) {
+            setProfileImageUri(profile.images[0]);
+          }
+        }
+      } catch (e) {
+        setProfileImageUri(null);
+      }
+    };
+    fetchProfileImage();
+  }, []);
 
   const filteredOrders = useMemo(() => {
     if (filterStatus === 'All') return orders;
@@ -157,106 +181,114 @@ export default function TraderOrdersScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-      <View style={styles.header}>
-        <Text style={styles.title}>Orders</Text>
-        <Ionicons name="person-circle" size={30} color="#333" />
-      </View>
-
-      <View style={styles.filterContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {statuses.map(status => (
-            <TouchableOpacity
-              key={status}
-              onPress={() => setFilterStatus(status)}
-              style={[
-                styles.filterBtn,
-                filterStatus === status && styles.filterBtnActive,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.filterText,
-                  filterStatus === status && styles.filterTextActive,
-                ]}
-              >
-                {status}
-              </Text>
+      <View style={{ flex: 1, paddingTop: Platform.OS === 'android' ? 24 : 0 }}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Orders</Text>
+          <View style={styles.headerIcons}>
+            <TouchableOpacity style={{ marginRight: 10 }}>
+              <Ionicons name="notifications-outline" size={24} color="#333" />
             </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
-      <FlatList
-        data={filteredOrders}
-        keyExtractor={item => item.id}
-        renderItem={renderOrder}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={
-          <Text style={{ textAlign: 'center', marginTop: 40, color: '#666' }}>
-            No orders found.
-          </Text>
-        }
-      />
-
-      <TouchableOpacity style={styles.exportBtn} onPress={exportToCSV}>
-        <Ionicons name="download-outline" size={22} color="#fff" />
-        <Text style={styles.exportText}>Export CSV</Text>
-      </TouchableOpacity>
-
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Order Details</Text>
-            {selectedOrder && (
-              <>
-                <Text style={styles.modalText}>
-                  <Text style={styles.bold}>Product: </Text>
-                  {selectedOrder.product}
-                </Text>
-                <Text style={styles.modalText}>
-                  <Text style={styles.bold}>Customer: </Text>
-                  {selectedOrder.customer}
-                </Text>
-                <Text style={styles.modalText}>
-                  <Text style={styles.bold}>Quantity: </Text>
-                  {selectedOrder.quantity}
-                </Text>
-                <Text style={styles.modalText}>
-                  <Text style={styles.bold}>Status: </Text>
-                  {selectedOrder.status}
-                </Text>
-                <Text style={styles.modalText}>
-                  <Text style={styles.bold}>Ordered At: </Text>
-                  {selectedOrder.time}
-                </Text>
-                <Text style={styles.modalText}>
-                  <Text style={styles.bold}>Address: </Text>
-                  {selectedOrder.address || '-'}
-                </Text>
-                <Text style={styles.modalText}>
-                  <Text style={styles.bold}>Phone: </Text>
-                  {selectedOrder.phone || '-'}
-                </Text>
-                <Text style={styles.modalText}>
-                  <Text style={styles.bold}>Notes: </Text>
-                  {selectedOrder.notes || '-'}
-                </Text>
-              </>
-            )}
-            <TouchableOpacity
-              style={styles.modalCloseBtn}
-              onPress={() => setModalVisible(false)}
-            >
-              <Text style={styles.modalCloseText}>Close</Text>
+            <TouchableOpacity onPress={() => router.push('/shopOwnerProfile')}>
+              {profileImageUri ? (
+                <Image source={{ uri: profileImageUri }} style={{ width: 30, height: 30, borderRadius: 15 }} />
+              ) : (
+                <Ionicons name="person-circle" size={30} color="#333" />
+              )}
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+
+        <View style={styles.filterContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {statuses.map(status => (
+              <TouchableOpacity
+                key={status}
+                onPress={() => setFilterStatus(status)}
+                style={[
+                  styles.filterBtn,
+                  filterStatus === status && styles.filterBtnActive,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.filterText,
+                    filterStatus === status && styles.filterTextActive,
+                  ]}
+                >
+                  {status}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        <FlatList
+          data={filteredOrders}
+          keyExtractor={item => item.id}
+          renderItem={renderOrder}
+          contentContainerStyle={[styles.list, { paddingBottom: 90 }]}
+          ListEmptyComponent={
+            <Text style={{ textAlign: 'center', marginTop: 40, color: '#666' }}>
+              No orders found.
+            </Text>
+          }
+        />
+
+        <Modal
+          visible={modalVisible}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Order Details</Text>
+              {selectedOrder && (
+                <>
+                  <Text style={styles.modalText}>
+                    <Text style={styles.bold}>Product: </Text>
+                    {selectedOrder.product}
+                  </Text>
+                  <Text style={styles.modalText}>
+                    <Text style={styles.bold}>Customer: </Text>
+                    {selectedOrder.customer}
+                  </Text>
+                  <Text style={styles.modalText}>
+                    <Text style={styles.bold}>Quantity: </Text>
+                    {selectedOrder.quantity}
+                  </Text>
+                  <Text style={styles.modalText}>
+                    <Text style={styles.bold}>Status: </Text>
+                    {selectedOrder.status}
+                  </Text>
+                  <Text style={styles.modalText}>
+                    <Text style={styles.bold}>Ordered At: </Text>
+                    {selectedOrder.time}
+                  </Text>
+                  <Text style={styles.modalText}>
+                    <Text style={styles.bold}>Address: </Text>
+                    {selectedOrder.address || '-'}
+                  </Text>
+                  <Text style={styles.modalText}>
+                    <Text style={styles.bold}>Phone: </Text>
+                    {selectedOrder.phone || '-'}
+                  </Text>
+                  <Text style={styles.modalText}>
+                    <Text style={styles.bold}>Notes: </Text>
+                    {selectedOrder.notes || '-'}
+                  </Text>
+                </>
+              )}
+              <TouchableOpacity
+                style={styles.modalCloseBtn}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.modalCloseText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      </View>
     </SafeAreaView>
   );
 }
@@ -282,14 +314,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#fefefe',
   },
   header: {
-    backgroundColor: '#7FE8C9',
-    padding: 16,
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingTop: 18,
+    paddingBottom: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#eee',
+  },
+  headerIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   title: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
   },
@@ -362,21 +402,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
   },
-  exportBtn: {
-    backgroundColor: '#3399ff',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 14,
-    margin: 12,
-    borderRadius: 10,
-  },
-  exportText: {
-    color: '#fff',
-    fontWeight: '700',
-    marginLeft: 8,
-    fontSize: 16,
-  },
+ 
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',

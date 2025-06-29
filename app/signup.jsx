@@ -6,20 +6,32 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  Alert,
 } from 'react-native';
 import { useState } from 'react';
 import Icon from 'react-native-vector-icons/Ionicons';
 import logo from '../assets/images/logo (2).png'; 
 import {useRouter} from 'expo-router'
+import {register} from './services/UserService'
 export default function SignUp() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [hidePassword, setHidePassword] = useState(true);
 
-  const handleSignUp = () => {
-    console.log(name, email, password);
+  const handleSignUp = async () => {
+   if(!name || !email || !password) {
+    Alert.alert('missing info','please fill out all fiealds');
+    return;
+   }
+   try{
+    const res=await register(name,email,password);
+    Alert.alert('Success',`welcome`)
     router.push('/(trader)/home')
+   }
+    catch(error){
+      Alert.alert('failled',error.message || 'please try again')
+    }
  
   };
 

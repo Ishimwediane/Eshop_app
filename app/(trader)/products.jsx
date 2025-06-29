@@ -1,19 +1,24 @@
-import React, { useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
+  Alert,
   FlatList,
   Image,
-  TouchableOpacity,
+  Modal,
+  Platform,
+  Pressable,
   SafeAreaView,
   ScrollView,
-  Alert,
-  Modal,
+  StatusBar,
+  StyleSheet,
+  Text,
   TextInput,
-  Pressable,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { getUserProfileByUserId } from '../services/profileService';
 
 const initialProducts = [
   {
@@ -43,6 +48,7 @@ const initialProducts = [
 ];
 
 export default function TraderProductsScreen() {
+  const router = useRouter();
   const [categories, setCategories] = useState(['All', 'Electronics', 'Shoes', 'Beauty']);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [products, setProducts] = useState(initialProducts);
@@ -59,23 +65,41 @@ export default function TraderProductsScreen() {
     image: '',
   });
 
-  // Filter products by category
+  const [profileImageUri, setProfileImageUri] = useState(null);
+
+  useEffect(() => {
+    const fetchProfileImage = async () => {
+      try {
+        const userId = await AsyncStorage.getItem('userId');
+        if (userId) {
+          const profile = await getUserProfileByUserId(userId);
+          if (profile && profile.images && profile.images.length > 0) {
+            setProfileImageUri(profile.images[0]);
+          }
+        }
+      } catch (e) {
+        setProfileImageUri(null);
+      }
+    };
+    fetchProfileImage();
+  }, []);
+
   const filteredProducts =
     selectedCategory === 'All'
       ? products
       : products.filter((p) => p.category === selectedCategory);
 
-  // Handle editing (placeholder)
+  
   const handleEdit = (id) => {
     Alert.alert('Edit', `Edit product with id: ${id}`);
   };
 
-  // Handle deleting product
+  
   const handleDelete = (id) => {
     Alert.alert('Delete', `Delete product with id: ${id}`);
   };
 
-  // Add new category from modal
+  
   const addCategory = () => {
     const trimmed = newCategoryName.trim();
     if (!trimmed) {
@@ -92,9 +116,9 @@ export default function TraderProductsScreen() {
     setAddCategoryModalVisible(false);
   };
 
-  // Add new product from modal
+  
   const addProduct = () => {
-    // Basic validation
+    
     if (
       !newProduct.name.trim() ||
       !newProduct.price ||
@@ -202,180 +226,181 @@ export default function TraderProductsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Top Bar */}
-      <View style={styles.topBar}>
-        <Text style={styles.title}>Products</Text>
-        <View style={styles.topRight}>
-          <TouchableOpacity style={{ marginRight: 16 }}>
-            <Ionicons name="notifications-outline" size={24} color="#000" />
-          </TouchableOpacity>
-          <TouchableOpacity>
-            <Image
-              source={{ uri: 'https://i.pravatar.cc/100' }}
-              style={styles.avatar}
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Category Filter */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoryList}
-      >
-        {categories.map(renderCategory)}
-        {renderCategory('AddButton')}
-      </ScrollView>
-
-      {/* Add Product Button */}
-      <View style={styles.addButtonRow}>
-        <Text style={styles.subTitle}>
-          Showing {filteredProducts.length} product(s)
-        </Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => setAddProductModalVisible(true)}
-        >
-          <Ionicons name="add-circle-outline" size={20} color="#fff" />
-          <Text style={styles.addButtonText}>Add Product</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Product List */}
-      <FlatList
-        data={filteredProducts}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={styles.list}
-        showsVerticalScrollIndicator={false}
-      />
-
-      {/* Add Category Modal */}
-      <Modal
-        visible={addCategoryModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setAddCategoryModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add New Category</Text>
-            <TextInput
-              placeholder="Category name"
-              value={newCategoryName}
-              onChangeText={setNewCategoryName}
-              style={styles.input}
-            />
-            <View style={styles.modalBtnRow}>
-              <Pressable
-                style={[styles.modalBtn, styles.cancelBtn]}
-                onPress={() => setAddCategoryModalVisible(false)}
-              >
-                <Text style={styles.modalBtnText}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.modalBtn, styles.saveBtn]}
-                onPress={addCategory}
-              >
-                <Text style={[styles.modalBtnText, { color: '#fff' }]}>Add</Text>
-              </Pressable>
-            </View>
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <View style={{ flex: 1, paddingTop: Platform.OS === 'android' ? 24 : 0 }}>
+        {/* Consistent Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Products</Text>
+          <View style={styles.headerIcons}>
+            <TouchableOpacity style={{ marginRight: 10 }}>
+              <Ionicons name="notifications-outline" size={24} color="#333" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('/shopOwnerProfile')}>
+              {profileImageUri ? (
+                <Image source={{ uri: profileImageUri }} style={{ width: 30, height: 30, borderRadius: 15 }} />
+              ) : (
+                <Ionicons name="person-circle" size={30} color="#333" />
+              )}
+            </TouchableOpacity>
           </View>
         </View>
-      </Modal>
 
-      {/* Add Product Modal */}
-      <Modal
-        visible={addProductModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setAddProductModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <ScrollView contentContainerStyle={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add New Product</Text>
+        {/* Category Filter */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryList}
+        >
+          {categories.map(renderCategory)}
+          {renderCategory('AddButton')}
+        </ScrollView>
 
-            <TextInput
-              placeholder="Product name"
-              value={newProduct.name}
-              onChangeText={(text) =>
-                setNewProduct((prev) => ({ ...prev, name: text }))
-              }
-              style={styles.input}
-            />
-            <TextInput
-              placeholder="Price (RWF)"
-              keyboardType="numeric"
-              value={newProduct.price}
-              onChangeText={(text) =>
-                setNewProduct((prev) => ({ ...prev, price: text }))
-              }
-              style={styles.input}
-            />
-            <TextInput
-              placeholder="Stock quantity"
-              keyboardType="numeric"
-              value={newProduct.stock}
-              onChangeText={(text) =>
-                setNewProduct((prev) => ({ ...prev, stock: text }))
-              }
-              style={styles.input}
-            />
-            <TextInput
-              placeholder="Image URL (optional)"
-              value={newProduct.image}
-              onChangeText={(text) =>
-                setNewProduct((prev) => ({ ...prev, image: text }))
-              }
-              style={styles.input}
-            />
-
-            <Text style={{ marginBottom: 6, fontWeight: '600' }}>
-              Select Category:
-            </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {categories
-                .filter((c) => c !== 'All')
-                .map((cat) => (
-                  <TouchableOpacity
-                    key={cat}
-                    style={[
-                      styles.categoryBtn,
-                      newProduct.category === cat && styles.categoryBtnActive,
-                      { marginBottom: 12 },
-                    ]}
-                    onPress={() => setNewProduct((prev) => ({ ...prev, category: cat }))}
-                  >
-                    <Text
-                      style={[
-                        styles.categoryText,
-                        newProduct.category === cat && styles.categoryTextActive,
-                      ]}
-                    >
-                      {cat}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-            </ScrollView>
-
-            <View style={styles.modalBtnRow}>
-              <Pressable
-                style={[styles.modalBtn, styles.cancelBtn]}
-                onPress={() => setAddProductModalVisible(false)}
-              >
-                <Text style={styles.modalBtnText}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.modalBtn, styles.saveBtn]}
-                onPress={addProduct}
-              >
-                <Text style={[styles.modalBtnText, { color: '#fff' }]}>Add</Text>
-              </Pressable>
-            </View>
-          </ScrollView>
+        <View style={styles.addButtonRow}>
+          <Text style={styles.subTitle}>
+            Showing {filteredProducts.length} product(s)
+          </Text>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => setAddProductModalVisible(true)}
+          >
+            <Ionicons name="add-circle-outline" size={20} color="#fff" />
+            <Text style={styles.addButtonText}>Add Product</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
+
+        <FlatList
+          data={filteredProducts}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={[styles.list, { paddingBottom: 90 }]}
+          showsVerticalScrollIndicator={false}
+        />
+
+        {/* Add Category Modal */}
+        <Modal
+          visible={addCategoryModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setAddCategoryModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Add New Category</Text>
+              <TextInput
+                placeholder="Category name"
+                value={newCategoryName}
+                onChangeText={setNewCategoryName}
+                style={styles.input}
+              />
+              <View style={styles.modalBtnRow}>
+                <Pressable
+                  style={[styles.modalBtn, styles.cancelBtn]}
+                  onPress={() => setAddCategoryModalVisible(false)}
+                >
+                  <Text style={styles.modalBtnText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.modalBtn, styles.saveBtn]}
+                  onPress={addCategory}
+                >
+                  <Text style={[styles.modalBtnText, { color: '#fff' }]}>Add</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal
+          visible={addProductModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setAddProductModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <ScrollView contentContainerStyle={styles.modalContent}>
+              <Text style={styles.modalTitle}>Add New Product</Text>
+
+              <TextInput
+                placeholder="Product name"
+                value={newProduct.name}
+                onChangeText={(text) =>
+                  setNewProduct((prev) => ({ ...prev, name: text }))
+                }
+                style={styles.input}
+              />
+              <TextInput
+                placeholder="Price (RWF)"
+                keyboardType="numeric"
+                value={newProduct.price}
+                onChangeText={(text) =>
+                  setNewProduct((prev) => ({ ...prev, price: text }))
+                }
+                style={styles.input}
+              />
+              <TextInput
+                placeholder="Stock quantity"
+                keyboardType="numeric"
+                value={newProduct.stock}
+                onChangeText={(text) =>
+                  setNewProduct((prev) => ({ ...prev, stock: text }))
+                }
+                style={styles.input}
+              />
+              <TextInput
+                placeholder="Image URL (optional)"
+                value={newProduct.image}
+                onChangeText={(text) =>
+                  setNewProduct((prev) => ({ ...prev, image: text }))
+                }
+                style={styles.input}
+              />
+
+              <Text style={{ marginBottom: 6, fontWeight: '600' }}>
+                Select Category:
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {categories
+                  .filter((c) => c !== 'All')
+                  .map((cat) => (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[
+                        styles.categoryBtn,
+                        newProduct.category === cat && styles.categoryBtnActive,
+                        { marginBottom: 12 },
+                      ]}
+                      onPress={() => setNewProduct((prev) => ({ ...prev, category: cat }))}
+                    >
+                      <Text
+                        style={[
+                          styles.categoryText,
+                          newProduct.category === cat && styles.categoryTextActive,
+                        ]}
+                      >
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+              </ScrollView>
+
+              <View style={styles.modalBtnRow}>
+                <Pressable
+                  style={[styles.modalBtn, styles.cancelBtn]}
+                  onPress={() => setAddProductModalVisible(false)}
+                >
+                  <Text style={styles.modalBtnText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.modalBtn, styles.saveBtn]}
+                  onPress={addProduct}
+                >
+                  <Text style={[styles.modalBtnText, { color: '#fff' }]}>Add</Text>
+                </Pressable>
+              </View>
+            </ScrollView>
+          </View>
+        </Modal>
+      </View>
     </SafeAreaView>
   );
 }
@@ -384,27 +409,26 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingTop: 50,
   },
-  topBar: {
-    paddingHorizontal: 20,
-    paddingBottom: 12,
+  header: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingTop: 18,
+    paddingBottom: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#eee',
   },
-  topRight: {
+  headerIcons: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  avatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-  },
   title: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
+    color: '#333',
   },
   subTitle: {
     fontSize: 14,
